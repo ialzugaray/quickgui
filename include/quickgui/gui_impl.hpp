@@ -1,3 +1,6 @@
+// Copyright (c) 2021 by Ignacio Alzugaray <alzugaray dot ign at gmail dot com>
+// ETH Zurich, Vision for Robotics Lab.
+
 namespace quickgui {
 
 auto Gui::DrawCube() -> void {

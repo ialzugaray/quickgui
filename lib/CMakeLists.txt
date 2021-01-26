@@ -1,5 +1,5 @@
 # Required CMake version and project name.
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.0.0)
 project(ImGuiPlot VERSION 1.0.0 LANGUAGES CXX)
 
 # Find required packages.

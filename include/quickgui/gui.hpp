@@ -1,3 +1,6 @@
+// Copyright (c) 2021 by Ignacio Alzugaray <alzugaray dot ign at gmail dot com>
+// ETH Zurich, Vision for Robotics Lab.
+
 #pragma once
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -38,26 +41,7 @@ class Gui {
     R.col(2) = (target - position).normalized();
     R.col(0) = up.cross(R.col(2)).normalized();
     R.col(1) = R.col(2).cross(R.col(0));
-
-//    Eigen::Matrix<Scalar,3,3> view_matrix;
-//    view_matrix.topLeftCorner<3,3>() = R.transpose();
-//    view_matrix.topRightCorner<3,1>() = -R.transpose() * position;
-//    view_matrix.row(3) << 0, 0, 0, 1;
-
     return  Quaternion{R};
-
-//    Vector3 toVector = (destPoint - sourcePoint).normalized();
-//
-//    //compute rotation axis
-//    Vector3 rotAxis = front.cross(toVector).normalized();
-//    if (rotAxis.squaredNorm() == 0) { rotAxis = up; }
-//
-//    //find the angle around rotation axis
-//    Scalar dot = front.dot(toVector);
-//    Scalar ang = std::acos(dot);
-//
-//    //convert axis angle to quaternion
-//    return Quaternion{Eigen::AngleAxisd( ang * rotAxis)};
   }
 
  protected:
@@ -86,4 +70,4 @@ class Gui {
 };
 }// namespace quickgui
 
-#include "impl/gui_impl.hpp"
+#include "gui_impl.hpp"
