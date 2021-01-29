@@ -3,6 +3,31 @@
 
 namespace quickgui {
 
+auto Gui::lookAt(const Vector3& position, const Vector3& target, const Vector3& up) -> Quaternion {
+  Eigen::Matrix<Scalar, 3, 3> R;
+  R.col(2) = (target - position).normalized();
+  R.col(0) = up.cross(R.col(2)).normalized();
+  R.col(1) = R.col(2).cross(R.col(0));
+  return Quaternion{R};
+}
+
+auto Gui::DrawPlanarRectangle() -> void {
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(-0.5, -0.5);
+  glVertex2f(+0.5, -0.5);
+  glVertex2f(+0.5, +0.5);
+  glVertex2f(-0.5, +0.5);
+  glEnd();
+}
+
+auto Gui::DrawPlanarRectangle(const Vector3& size, const Vector3& center) -> void {
+  glPushMatrix();
+  glTranslatef(center.x(), center.y(), center.z());
+  glScalef(size.x(), size.y(), size.z());
+  DrawPlanarRectangle();
+  glPopMatrix();
+}
+
 auto Gui::DrawCube() -> void {
   glBegin(GL_QUADS);// Begin drawing the color cube with 6 quads
   // Top face (y = 1.0f)
@@ -50,29 +75,27 @@ auto Gui::DrawCube() -> void {
   glEnd();// End of drawing color-cube
 }
 
-Gui::Gui() {
-  //  InitializeEnvironment();
-  ResetCamera();
-}
+Gui::Gui() { resetCamera(); }
 
-Gui::~Gui() { DestroyEnvironment(); }
+Gui::~Gui() { destroyEnvironment_(); }
 
-auto Gui::StartInNewThread() -> void {
-  //  thread_ = std::thread(&Gui::Run_, this);
+auto Gui::startInNewThread() -> const Thread& {
+  //  thread_ = std::thread(&Gui::run_, this);
   thread_ = std::thread([&]() {
-    InitializeEnvironment();
-    Run_();
+    initializeEnvironment_();
+    run_();
   });
 
   DLOG(INFO) << "Gui " << thread_.get_id() << " started by thread " << std::this_thread::get_id() << ".";
+  return thread_;
 }
 
-auto Gui::Start() -> void {
-  InitializeEnvironment();
-  Run_();
+auto Gui::start() -> void {
+  initializeEnvironment_();
+  run_();
 }
 
-auto Gui::Run_() -> void {
+auto Gui::run_() -> void {
   glEnable(GL_DEPTH_TEST);
 
   ImVec4 clear_color = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -87,35 +110,32 @@ auto Gui::Run_() -> void {
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    // Start the Dear ImGui frame
+    // start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // 1. Show the big demo window (Most of the sample code is in
-    // ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear
-    // ImGui!).
     static bool show_demo_window = true;
     if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
     // Rendering
     ImGui::Render();
 
-    HandleInput();
+    handleDeviceInput_();
 
-    LoadProjection();
+    loadProjection_();
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    if (1) { DrawCube(); }
+    DrawCube();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window_);
   }
 }
 
-auto Gui::InitializeEnvironment() -> void {
+auto Gui::initializeEnvironment_() -> void {
   // glfw Initialization
   glfwSetErrorCallback([](int error, const char* description) {
     LOG(ERROR) << "Glfw Error " << error << ": " << std::string(description);
@@ -127,9 +147,8 @@ auto Gui::InitializeEnvironment() -> void {
   const char* glsl_version = "#version 130";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+
-  // only glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+
-  // only
+  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+  // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
   // Create window with graphics context
   std::string window_name = "Window";
@@ -140,7 +159,6 @@ auto Gui::InitializeEnvironment() -> void {
   glfwSwapInterval(1);// Enable vsync
 
   //  glfwSetCursorPosCallback(window_, mouse_callback);
-  //  glfwSetMouseButtonCallback(window_, MouseButtonCallback);
 
   // Initialize OpenGL loader
   bool err = glewInit() != GLEW_OK;
@@ -168,7 +186,7 @@ auto Gui::InitializeEnvironment() -> void {
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-auto Gui::DestroyEnvironment() -> void {
+auto Gui::destroyEnvironment_() -> void {
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
@@ -179,7 +197,7 @@ auto Gui::DestroyEnvironment() -> void {
   glfwTerminate();
 }
 
-auto Gui::LoadProjection() -> void {
+auto Gui::loadProjection_() -> void {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
@@ -196,32 +214,28 @@ auto Gui::LoadProjection() -> void {
   gluLookAt(camera_pos_.x(), camera_pos_.y(), camera_pos_.z(), (camera_pos_ + camera_front).x(),
             (camera_pos_ + camera_front).y(), (camera_pos_ + camera_front).z(), camera_up.x(), camera_up.y(),
             camera_up.z());
-
 }
 
-auto Gui::HandleInput() -> void {
+auto Gui::handleDeviceInput_() -> void {
   Vector3 camera_z = camera_quat_.toRotationMatrix() * Vector3::UnitZ();
-    Vector3 camera_up = Vector3::UnitY();
-    Vector3 camera_x = camera_up.cross(camera_z);
-    Vector3 camera_y = camera_x.cross(camera_z);
-//  Vector3 camera_x = camera_quat_.toRotationMatrix() * Vector3::UnitX();
-//  Vector3 camera_y = camera_quat_.toRotationMatrix() * Vector3::UnitY();
+  Vector3 camera_up = Vector3::UnitY();
+  Vector3 camera_x = camera_up.cross(camera_z);
+  Vector3 camera_y = camera_x.cross(camera_z);
 
   auto frame_dt = 1.0 / ImGui::GetIO().Framerate;
   auto disp = kNavigationTranslationVelocity_ * frame_dt;
 
-  if (ImGui::IsKeyDown(GLFW_KEY_W)) { TranslateCamera(camera_z * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_S)) { TranslateCamera(-camera_z * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_A)) { TranslateCamera(camera_x * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_D)) { TranslateCamera(-camera_x * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_Q)) { TranslateCamera(Vector3::UnitY() * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_E)) { TranslateCamera(-Vector3::UnitY() * disp); }
-  if (ImGui::IsKeyDown(GLFW_KEY_R)) { ResetCamera(); }
+  if (ImGui::IsKeyDown(GLFW_KEY_W)) { translateCamera(camera_z * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_S)) { translateCamera(-camera_z * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_A)) { translateCamera(camera_x * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_D)) { translateCamera(-camera_x * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_Q)) { translateCamera(Vector3::UnitY() * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_E)) { translateCamera(-Vector3::UnitY() * disp); }
+  if (ImGui::IsKeyDown(GLFW_KEY_R)) { resetCamera(); }
 
   static bool dragging_flag = false;
 
-
-//  camera_quat_ = lookAt(camera_pos_, Vector3::Zero(), Vector3::UnitY());
+  //  camera_quat_ = lookAt(camera_pos_, Vector3::Zero(), Vector3::UnitY());
 
   if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow)
       && ImGui::IsMouseDragging(ImGuiMouseButton_::ImGuiMouseButton_Left)) {
@@ -235,7 +249,7 @@ auto Gui::HandleInput() -> void {
     auto delta = ImGui::GetMouseDragDelta();
     auto ang_disp_scale = kNavigationRotationVelocity_;
 
-    camera_quat_ =  Eigen::AngleAxis<Scalar>(-delta.x * ang_disp_scale, Vector3::UnitY()) * root_quat
+    camera_quat_ = Eigen::AngleAxis<Scalar>(-delta.x * ang_disp_scale, Vector3::UnitY()) * root_quat
         * Eigen::AngleAxis<Scalar>(delta.y * ang_disp_scale, Vector3::UnitX())
 
         ;
@@ -244,11 +258,11 @@ auto Gui::HandleInput() -> void {
   }
 }
 
-auto Gui::ResetCamera() -> void {
+auto Gui::resetCamera() -> void {
   camera_pos_.setZero();
   camera_quat_.setIdentity();
 }
 
-auto Gui::TranslateCamera(const Vector3& dt) -> void { camera_pos_ = camera_pos_ + dt; };
+auto Gui::translateCamera(const Vector3& dt) -> void { camera_pos_ = camera_pos_ + dt; };
 
 }// namespace quickgui

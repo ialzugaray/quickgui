@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv[]) {
   quickgui::Gui gui;
-  gui.Start();
+  gui.start();
 
   while (true) {
   };

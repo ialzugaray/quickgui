@@ -14,6 +14,8 @@
 #include "implot/implot.h"
 #include "implot/implot_internal.h"
 
+// TODO: remove unnecessary inlining.
+// TODO: Naming formatting.
 namespace quickgui {
 class Gui {
  public:
@@ -26,42 +28,40 @@ class Gui {
   using WindowName = std::string;
   using ColorMap = std::vector<std::array<GLfloat, 3>>;
 
-  inline Gui();
-  inline ~Gui();
+  static constexpr GLfloat kColorBlack[] = {0.0f, 0.0f, 0.0f};
+  static constexpr GLfloat kColorWhite[] = {1.0f, 1.0f, 1.0f};
+  static constexpr GLfloat kColorRed[] = {1.0f, 0.0f, 0.0f};
+  static constexpr GLfloat kColorBlue[] = {0.0f, 0.0f, 1.0f};
+  static constexpr GLfloat kColorGreen[] = {0.0f, 1.0f, 0.0f};
+  static constexpr GLfloat kColorMagenta[] = {1.0f, 0.0f, 1.0f};
+  static constexpr GLfloat kColorCyan[] = {0.0f, 1.0f, 1.0f};
 
-  inline auto Start() -> void;
-  inline auto StartInNewThread() -> void;
-  inline virtual auto Run_() -> void;
+  static auto DrawCube() -> void;
+  static auto lookAt(const Vector3& position, const Vector3& target, const Vector3& up) -> Quaternion;
+  static auto DrawPlanarRectangle() -> void;
+  static auto DrawPlanarRectangle(const Vector3& size, const Vector3& center = Vector3::Zero()) -> void;
+  static auto RandomColorMap_(size_t n = 100) -> ColorMap;
 
-  inline static auto DrawCube() -> void;
+  Gui();
+  ~Gui();
 
-  static auto lookAt(const Vector3& position, const Vector3& target, const Vector3& up) -> Quaternion {
-
-    Eigen::Matrix<Scalar,3,3> R;
-    R.col(2) = (target - position).normalized();
-    R.col(0) = up.cross(R.col(2)).normalized();
-    R.col(1) = R.col(2).cross(R.col(0));
-    return  Quaternion{R};
-  }
+  auto start() -> void;
+  auto startInNewThread() -> const Thread&;
+  auto translateCamera(const Vector3& dt) -> void;
+  virtual auto resetCamera() -> void;
 
  protected:
-  static auto RandomColorMap(size_t n = 100) -> ColorMap;
-
-  inline auto LoadProjection() -> void;
-  inline auto InitializeEnvironment() -> void;
-  inline auto DestroyEnvironment() -> void;
-  inline virtual auto HandleInput() -> void;
-
-  inline virtual auto ResetCamera() -> void;
-
-  inline auto TranslateCamera(const Vector3& dt) -> void;
-  inline auto RotateCamera(const Quaternion& dq) -> void;
-
   static constexpr auto kViewFov_ = 60.0;
   static constexpr auto kMinClipDistance_ = 0.01;
   static constexpr auto kMaxClipDistance_ = 5;
   static constexpr auto kNavigationTranslationVelocity_ = 1.0;
   static constexpr auto kNavigationRotationVelocity_ = 0.005;
+
+  auto loadProjection_() -> void;
+  auto initializeEnvironment_() -> void;
+  auto destroyEnvironment_() -> void;
+  virtual auto handleDeviceInput_() -> void;
+  virtual auto run_() -> void;
 
   Thread thread_;
   Vector3 camera_pos_;
