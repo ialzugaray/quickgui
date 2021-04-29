@@ -79,7 +79,7 @@ Gui::Gui() { resetCamera(); }
 
 Gui::~Gui() { destroyEnvironment_(); }
 
-auto Gui::startInNewThread() -> const Thread& {
+auto Gui::startInNewThread() -> Thread& {
   //  thread_ = std::thread(&Gui::run_, this);
   thread_ = std::thread([&]() {
     initializeEnvironment_();

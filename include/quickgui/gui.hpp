@@ -46,14 +46,14 @@ class Gui {
   ~Gui();
 
   auto start() -> void;
-  auto startInNewThread() -> const Thread&;
+  auto startInNewThread() -> Thread&;
   auto translateCamera(const Vector3& dt) -> void;
   virtual auto resetCamera() -> void;
 
  protected:
   static constexpr auto kViewFov_ = 60.0;
   static constexpr auto kMinClipDistance_ = 0.01;
-  static constexpr auto kMaxClipDistance_ = 5;
+  static constexpr auto kMaxClipDistance_ = 30;
   static constexpr auto kNavigationTranslationVelocity_ = 1.0;
   static constexpr auto kNavigationRotationVelocity_ = 0.005;
 
